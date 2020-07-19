@@ -1,0 +1,15 @@
+name:  grasp_gen
+channels:
+    - defaults
+    - open3d-admin
+    - owlas
+    - anaconda
+dependencies:
+    - python=3.7
+    - numpy=1.18.*
+    - scipy=1.4.*
+    - open3d=0.10.*
+    - transforms3d=0.3.*
+    - pillow=7.1.*
+    - pip:
+        - sapien

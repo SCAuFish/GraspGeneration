@@ -1,15 +1,17 @@
 # This is the start point of grasp generation pipeline
-import os
+import os, sys
 from pcloud_src.data_generation import generate_point_cloud
 from grasp_src.utils import filter_fixed_parts
 
 # 1. Compile grasp generation program
 print('Generation Started')
-os.system('cmake ./grasp_src/CMakeLists.txt')
-os.system('make -C ./grasp_src grasp_gen')
+os.system('sh grasp_src/compile.sh')
 print('Done compilation')
 
-ASSET_DIR = '../dataset'
+ASSET_DIR = '/cephfs/chs091/datasets'
+if len(sys.argv) > 1:
+    # when running locally
+    ASSET_DIR = sys.argv[1]
 objects = os.listdir(ASSET_DIR)
 
 for i in range(len(objects)):
@@ -20,7 +22,7 @@ for i in range(len(objects)):
     # add more pose with other seeds here
     seeds = [1]
     for i in range(len(seeds)):
-        generate_point_cloud(objId, seeds[i], dataset_dir = '../dataset')
+        generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
 
     # 3. Generate raw grasps
     objDirs = ["{}_{}".format(objId, seed) for seed in seeds]

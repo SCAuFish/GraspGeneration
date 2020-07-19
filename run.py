@@ -22,17 +22,15 @@ for i in range(len(objects)):
     # 3. Generate raw grasps
     objDirs = ["{}_{}".format(objId, seed) for seed in seeds]
     for i in range(len(objDirs)):
-        os.system('./grasp_src/grasp_gen ./clouds/{}/all.pcd ./clouds/{}/raw_grasp.out'.format(objDirs[i], objDirs[i]))
+        os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDirs[i], objDirs[i]))
 
     print("Done raw grasp generation")
 
     # 4. Filter grasps that are on fixed links. Back to 2 
     for i in range(len(objDirs)):
         token = objDirs[i]
-        filter_fixed_parts("./clouds/{}/all.npz".format(token), objId, 
-                           "./clouds/{}/info.json".format(token), 
-                           "./clouds/{}/raw_grasp.out".format(token), 
-                           "./clouds/{}/filtered.out".format(token),
+        filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(token), objId, 
+                           "/cephfs/chs091/clouds/{}/info.json".format(token), 
+                           "/cephfs/chs091/clouds/{}/raw_grasp.out".format(token), 
+                           "/cephfs/chs091/clouds/{}/filtered.out".format(token),
                            ASSET_DIR)
-
-    break

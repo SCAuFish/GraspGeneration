@@ -120,7 +120,7 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset')
         }
 
     import json
-    dirname = 'clouds/{}_{}'.format(id, seed if seed is not None else 'init')
+    dirname = '/cephfs/chs091/clouds/{}_{}'.format(id, seed if seed is not None else 'init')
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, 'info.json'), 'w') as f:
         json.dump({'seed': seed, 'info': link_info}, f)

@@ -3,11 +3,6 @@ import os, sys
 from pcloud_src.data_generation import generate_point_cloud
 from grasp_src.utils import filter_fixed_parts
 
-# 1. Compile grasp generation program
-print('Generation Started')
-os.system('sh grasp_src/compile.sh')
-print('Done compilation')
-
 ASSET_DIR = '/cephfs/chs091/datasets'
 if len(sys.argv) > 1:
     # when running locally

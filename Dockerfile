@@ -1,6 +1,7 @@
-# Based on https://github.com/pytorch/pytorch/blob/master/docker/pytorch/Dockerfile
-# Please use devel instead of runtime since you might need use the compiler (nvcc).
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+# There is no nvcc in this vulkan image, therefore 
+# compile with the other image and run the executable in vulkan
+# FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+FROM nvidia/vulkan:1.1.121-cuda-10.1-beta.1-ubuntu18.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt remove --purge cmake

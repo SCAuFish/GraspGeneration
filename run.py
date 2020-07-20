@@ -17,20 +17,19 @@ for i in range(len(objects)):
     # add more pose with other seeds here
     seeds = [1]
     for i in range(len(seeds)):
+        objDir = "{}_{}".format(objId, seeds[i])
+        if os.path.isdir("/cephfs/chs091/clouds/{}".format(objDir)):
+            # skip generated grasps
+            continue
         generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
 
-    # 3. Generate raw grasps
-    objDirs = ["{}_{}".format(objId, seed) for seed in seeds]
-    for i in range(len(objDirs)):
-        os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDirs[i], objDirs[i]))
+        # 3. Generate raw grasps
+        os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDir, objDir))
+        print("Done raw grasp generation")
 
-    print("Done raw grasp generation")
-
-    # 4. Filter grasps that are on fixed links. Back to 2 
-    for i in range(len(objDirs)):
-        token = objDirs[i]
-        filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(token), objId, 
-                           "/cephfs/chs091/clouds/{}/info.json".format(token), 
-                           "/cephfs/chs091/clouds/{}/raw_grasp.out".format(token), 
-                           "/cephfs/chs091/clouds/{}/filtered.out".format(token),
+        # 4. Filter grasps that are on fixed links. Back to 2 
+        filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(objDir), objId, 
+                           "/cephfs/chs091/clouds/{}/info.json".format(objDir), 
+                           "/cephfs/chs091/clouds/{}/raw_grasp.out".format(objDir), 
+                           "/cephfs/chs091/clouds/{}/filtered.out".format(objDir),
                            ASSET_DIR)

@@ -10,7 +10,7 @@ spec:
   - name: gpu-container
     image: aufish1999/cuda:1.0
     imagePullPolicy: Always
-    command : ['sh', '-c', '/cephfs/chs091/setup_grasp_gen_env.sh; sleep infinity']
+    command : ['sh', '-c', '/cephfs/chs091/setup_grasp_gen_env.sh > /cephfs/chs091/log; sleep infinity']
     resources:
       requests:
         cpu: "1"

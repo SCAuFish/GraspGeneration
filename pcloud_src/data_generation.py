@@ -184,3 +184,8 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset')
     print('Done saving {}'.format(id))
 
     scene = None
+
+
+import sys
+if __name__ == "__main__":
+    generate_point_cloud(sys.argv[1], sys.argv[2], sys.argv[3])

@@ -21,14 +21,18 @@ for i in range(len(objects)):
         if os.path.isdir("/cephfs/chs091/clouds/{}".format(objDir)):
             # skip generated grasps
             continue
-        try:
-            generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
-        except:
-            print("Failed generating pointcloud on {}".format(objId))
+        # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
+        exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
+        if exit_code != 0:
+            print("Failed pointcloud generation on {}".format(objId))
             break
 
         # 3. Generate raw grasps
-        os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDir, objDir))
+        exit_code = os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDir, objDir))
+        if exit_code != 0:
+            print("Failed grasp generation on {}".format(objId))
+            break
+
         print("Done raw grasp generation")
 
         # 4. Filter grasps that are on fixed links. Back to 2 

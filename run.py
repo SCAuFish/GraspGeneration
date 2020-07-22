@@ -21,7 +21,11 @@ for i in range(len(objects)):
         if os.path.isdir("/cephfs/chs091/clouds/{}".format(objDir)):
             # skip generated grasps
             continue
-        generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
+        try:
+            generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
+        except:
+            print("Failed generating pointcloud on {}".format(objId))
+            break
 
         # 3. Generate raw grasps
         os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDir, objDir))

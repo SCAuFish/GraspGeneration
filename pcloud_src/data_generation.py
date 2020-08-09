@@ -105,7 +105,7 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset')
         if joint.type == sc.ArticulationJointType.PRISMATIC:
             joint_type = 'prismatic'
         elif joint.type == sc.ArticulationJointType.REVOLUTE:
-            joint_type = 're volute'
+            joint_type = 'revolute'
         else:
             joint_type = 'none'
         joint_type = joint.type

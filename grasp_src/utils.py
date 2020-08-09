@@ -11,20 +11,103 @@ from collections import defaultdict
 
 class WholeObjectEvaluator():
     def __init__(self, objectId, ASSET_DIR):
-        object_urdf_path = ASSET_DIR + "/" + objectId
-        filepath = os.path.join(os.path.abspath(''),
+        object_urdf_path = ASSET_DIR + objectId
+        filepath = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                 object_urdf_path+"/mobility.urdf")
         self.objectID    = objectId
         self.object_root = ET.parse(filepath)
 
-    def find_axis(self, link_name, joint2pose):
+    def eval_grasp(self, contact_point, contact_normal, axisPoint, axisDir):
+        ''' Take a one contact point, evaluate the contact point
+
+            ? Maybe should also evaluate how much to exert along the contact axis to achieve unit
+            force along surface normal
+
+            params: contact_point - 3D coordinates of contact point
+                    contact_normal - the normal direction at the contact point
+                    axis - axis of the joint, should be in the same frame as contact_point and contact_normal
+                        axisPoint is the point through which the axis passes
+                        axisDir is the direction of the axis (3x1 vector)
+
+            return: force to generate unit torque, projection of unit force on contact normal,
+                    projection of unit force on contact tangent
+        '''
+        # 0. Check dimensions, each row is a point/normal
+        assert contact_normal.shape[1] == 3
+        assert contact_point.shape[1]  == 3
+        axisPoint     = axisPoint.reshape(1, 3)
+        axisDir       = axisDir.reshape(1, 3)
+        # 1. use origin_in_world and direction_in_world to calculate force arm to the contact points
+        v1 = axisDir
+        v2 = (axisPoint - contact_point)
+        # axis=1 so that the norm is calculated per row
+        force_arm = norm(np.cross(v1, v2), axis=1) / norm(v1)
+
+        # 2. use force arm to calculate unit force on contact point
+        unit_torque_force = 1 / force_arm
+
+        # 3. Evaluate how much force is required along and orthogonal to contact normal to create unit force
+        # orthogonal to force_arm
+        # 3.1 Find force-arm vector
+        unit_direction = axisDir / norm(axisDir)
+        force_arm_vector_origin = axisPoint + ((contact_point - axisPoint.reshape(1, 3)) @ unit_direction.transpose()) * unit_direction
+        force_arm_vector        = contact_point - force_arm_vector_origin
+
+        # 3.2 Calculate unit force orthogonal to force-arm, on the same plane as contact normal and force-arm
+        ortho_force  = np.cross(force_arm_vector, axisDir)
+
+        ortho_force  = ortho_force / norm(ortho_force, axis=1).reshape((ortho_force.shape[0], 1))
+
+        # 3.3 Calculate the force required along and orthogonal to contact normal to create unit_ortho_force
+        force_along_normal = np.sum(ortho_force * (contact_normal / norm(contact_normal, axis=1).reshape((contact_normal.shape[0], 1))), axis=1)
+        force_ortho_normal = np.sqrt(1 - np.clip(force_along_normal, -1, 1) ** 2)
+
+        return unit_torque_force, force_along_normal, force_ortho_normal
+
+    def eval_required_normal(self, unit_torque_force, force_along_normal, force_ortho_normal, friction_coef=0.7):
+        ''' Takes output from eval_grasp as input and a friction coefficient so that the requried normal force
+            may be calculated
+
+            return - normal force required at each contact point to create unit torque
+        '''
+        normal_force = unit_torque_force / (np.abs(force_along_normal) + friction_coef * np.abs(force_ortho_normal))
+
+        return normal_force
+
+    def eval_and_visualize(self, part_name, friction_coef=0.7):
+        pcd_file_path = "{}/{}/{}_downsample.pcd".format(CLOUD_DIR, self.objectID, part_name)
+        pcd_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            pcd_file_path)
+        pcd = open3d.io.read_point_cloud(pcd_file_path)
+        joint, xyz, axis = self.find_axis(part_name)
+        if joint:
+            points = [xyz - axis * 5, xyz + axis * 5]
+            lines = [[0, 1]]
+            lineset = open3d.geometry.LineSet(
+                points=open3d.utility.Vector3dVector(points),
+                lines=open3d.utility.Vector2iVector(lines),
+            )
+            colors = [[1, 0, 0]] if joint == 'prismatic' else [[0, 1, 0]]
+            lineset.colors = open3d.utility.Vector3dVector(colors)
+            mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
+            
+            unit_torque_force, force_along_normal, force_ortho = \
+                self.eval_grasp(np.asarray(pcd.points), np.asarray(pcd.normals), xyz, axis)
+            normal_force_result = self.eval_required_normal(unit_torque_force, force_along_normal, force_ortho, friction_coef)
+            colors = np.zeros((normal_force_result.shape[0], 3))
+            normal_force_result = np.log(normal_force_result)
+            normal_force_result = normal_force_result / np.max(normal_force_result)
+            colors[:, 0] = normal_force_result
+            pcd.colors = open3d.utility.Vector3dVector(colors)
+            open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
+
+    def find_axis(self, joint_name):
         ''' Get axis point and axis direction from URDF file.
-            if the link is connected to a fixed link, return None
         '''
         robot_root = self.object_root
         for joint in robot_root.findall("joint"):
             if joint.get('type') in ['prismatic', 'revolute', 'continuous']:
-                if joint.find('child').get('link') == link_name:
+                if joint.get('name') == joint_name:
                     axis = joint.find('axis')
                     if axis is None:
                         axis = '1 0 0'
@@ -32,7 +115,9 @@ class WholeObjectEvaluator():
                         axis = axis.get('xyz')
                     axis = np.array([float(x) for x in axis.split()])
                     assert axis.shape == (3, )
-                    link = [l for l in robot_root.findall('link') if l.get('name') == link_name][0]
+
+                    child_link_name = joint.find('child').get('link')
+                    link = [l for l in robot_root.findall('link') if l.get('name') == child_link_name][0]
                     col = link.find('collision')
                     origin = col.find('origin')
                     xyz = np.array([float(x) for x in origin.get('xyz').split()])
@@ -40,12 +125,31 @@ class WholeObjectEvaluator():
                     assert origin.get('rpy') is None
                     if joint.get('type') == 'prismatic':
                         xyz = np.array([0, 0, 0])
-                        
                     return joint.get('type'), -xyz, axis
         return None, None, None
-    
 
-def filter_fixed_parts(object_npz, objectId, info_json_file, grasp_proposal, output_file, ASSET_DIR):
+
+def get_paired_score(p1: int, p2: int, unit_torque_force: np.ndarray, force_along_normal: np.ndarray, force_ortho: np.ndarray, friction_coef=0.7):
+    ''' Hypothesis: if two contact points are exerting force, the sum of two minimum normal forces are always greater than the
+                    minimum normal force of only using one of the contact point.
+    '''
+    # Consider first rotation direction: require negative force along normal (rotating along axis)
+    nf1, nf2 = None, None
+    nf1 = unit_torque_force[p1] / (np.abs(np.clip(force_along_normal[p1], -10000, 0)) + friction_coef * np.abs(force_ortho[p1]))
+    nf2 = unit_torque_force[p2] / (np.abs(np.clip(force_along_normal[p2], -10000, 0)) + friction_coef * np.abs(force_ortho[p2]))
+
+    dir1nf = min(nf1, nf2)
+
+    # Consider the second dirction: require positive force along normal (rotating anti axis)
+    nf1, nf2 = None, None
+    nf1 = unit_torque_force[p1] / (np.clip(force_along_normal[p1], 0, 10000) + friction_coef * np.abs(force_ortho[p1]))
+    nf2 = unit_torque_force[p2] / (np.clip(force_along_normal[p2], 0, 10000) + friction_coef * np.abs(force_ortho[p2]))
+
+    dir2nf = min(nf1, nf2)
+
+    return (dir1nf, dir2nf)
+    
+def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, output_file, ASSET_DIR, friction_coef=0.7):
     # 1. Read in grasp proposals
     pointcloud = np.load(object_npz)
     points  = pointcloud['points']
@@ -77,36 +181,55 @@ def filter_fixed_parts(object_npz, objectId, info_json_file, grasp_proposal, out
     
     # 4. Evaluate based on each link
     proposal_writer = open(output_file, "w")
+    part2grasps     = defaultdict(list)
+    # 4.1 group grasps based on the segmentation they are on
+    for proposal in proposals:
+        p1, p2, all_info = proposal
+        if segmentation[p1] == segmentation[p2]:
+            seg = segmentation[p1]
+            part2grasps[seg].append(proposal)
+
+    # 4.2 Evaluate and filter by segment
+
     for seg in seg2link_joint:
-        joint, xyz, axis = evaluator.find_axis(seg2link_joint[seg][0], joint2pose)
+        # 4.1 find information about the current joint
+        joint, xyz, axis = evaluator.find_axis(seg2link_joint[seg][1])
         axis = np.array([0, 0, 1])
         if joint == None:
             continue
             
-        print("Done score calculating")
-        # Output to proposal format
+        # 4.2 Get grasps that is related to current joint
+        grasps  = part2grasps[seg]
         proposal_dict = defaultdict(list)
-        for proposal in proposals:
+        for proposal in grasps:
             p1, p2, all_info = proposal
 
             proposal_dict[p1].append(all_info)
 
-        total_selected = 0
+        unit_torque_force, force_along_normal, force_ortho = evaluator.eval_grasp(points, normals, xyz, axis)
+
         for p in proposal_dict:
-            if segmentation[p] != seg:
-                continue
             output_str = "{}###".format(p)
             pairs = proposal_dict[p]
-            has_pair = False
+
+            pointIdx = int(p)
             for pair in pairs:
                 pairIdx = int(pair.strip().split(" ")[0])
-                if segmentation[pairIdx] != seg:
-                    continue
-                output_str += "{} | ".format(pair)
-                has_pair = True
-                total_selected += 1
+                score = get_paired_score(pointIdx, pairIdx, unit_torque_force, force_along_normal, force_ortho, friction_coef=friction_coef)
 
-            if has_pair:
-                proposal_writer.write(output_str + "\n")
-            
+                output_str += "{} {}| ".format(pair, score)
+                
+
+            proposal_writer.write(output_str + "\n")
+
+
+    print("Done score calculating")            
     proposal_writer.close()
+
+if __name__ == "__main__":
+    filter_and_score("../clouds/102692_1/all.npz", 
+                    102692, 
+                    "../clouds/102692_1/info.json", 
+                    "../clouds/102692_1/raw_grasp.out", 
+                    "../clouds/102692_1/scored.out", 
+                    "../../dataset/")

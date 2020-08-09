@@ -29,6 +29,33 @@ def get_grasps(grasp_file):
         
     return lines
 
+def get_scores(grasp_file):
+    scores = []
+    
+    # Take the candidate at the first index as line
+    reader = open(grasp_file, "r")
+    
+    contained_in_grasp = set()
+    for line in reader.readlines():
+        current_point = int(line.split("#")[0])
+        
+        if current_point in contained_in_grasp:
+            continue
+            
+        grasp_pair    = line.split("#")[-1]
+        if "|" in grasp_pair:
+            grasp_pair = grasp_pair.split("|")[0]
+            grasp_pair, direction, score = grasp_pair.strip().split("(")
+
+            score_1, score_2 = score.strip("()").split(",")
+            score      = (float(score_1), float(score_2))
+            
+        grasp_pair     = int(grasp_pair)
+        contained_in_grasp.add(grasp_pair)
+        scores.append(score)
+        
+    return scores
+
 def visualize_grasps(pcd_file, grasp_file):
     pcd = open3d.io.read_point_cloud(pcd_file)
 
@@ -88,13 +115,39 @@ def visualize_grasps_quality(pcd_file, grasp_file, obj_id, joint_name, friction_
 
     open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
 
+def visualize_scored_grasps(pcd_file, grasp_file):
+    pcd = open3d.io.read_point_cloud(pcd_file)
+
+    lines  = get_grasps(grasp_file)
+    scores = get_scores(grasp_file)
+    assert len(lines) == len(scores)
+
+    mean_scores = [sum(score) for score in scores]
+    print(len(lines))
+    # lines = random.choices(lines, k=max(100000, len(lines)))
+    points = np.asarray(pcd.points)
+    normals = np.asarray(pcd.normals)
+    lineset = open3d.geometry.LineSet(
+        points=open3d.utility.Vector3dVector(points),
+        lines=open3d.utility.Vector2iVector(lines),
+    )
+    mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
+
+    # Choose a relatively good normalizer
+    colors = [[0, mean_scores[i] / 10, 1-(mean_scores[i] / 10)] for i in range(len(lines))]
+    lineset.colors = open3d.utility.Vector3dVector(colors)
+
+    pcd = pcd.voxel_down_sample(voxel_size=0.01)
+
+    open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
+
 
 import sys
 if __name__ == "__main__":
     point_cloud_file = sys.argv[1]
     grasp_file       = sys.argv[2]
     if len(sys.argv) == 3:
-        visualize_grasps(point_cloud_file, grasp_file)
+        visualize_scored_grasps(point_cloud_file, grasp_file)
     else:
         obj_id     = sys.argv[3]
         joint_name = sys.argv[4]

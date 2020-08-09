@@ -204,39 +204,40 @@ class WholeObjectEvaluator(BaseEvaluator):
         return normal_force
 
     def eval_and_visualize(self, part_name, friction_coef=0.7):
-            pcd_file_path = "{}/{}/{}_downsample.pcd".format(CLOUD_DIR, self.objectID, part_name)
-            pcd_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                pcd_file_path)
-            pcd = open3d.io.read_point_cloud(pcd_file_path)
-            joint, xyz, axis = self.find_axis(part_name)
-            if joint:
-                points = [xyz - axis * 5, xyz + axis * 5]
-                lines = [[0, 1]]
-                lineset = open3d.geometry.LineSet(
-                    points=open3d.utility.Vector3dVector(points),
-                    lines=open3d.utility.Vector2iVector(lines),
-                )
-                colors = [[1, 0, 0]] if joint == 'prismatic' else [[0, 1, 0]]
-                lineset.colors = open3d.utility.Vector3dVector(colors)
-                mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
-                
-                unit_torque_force, force_along_normal, force_ortho = \
-                    self.eval_grasp(np.asarray(pcd.points), np.asarray(pcd.normals), xyz, axis)
-                normal_force_result = self.eval_required_normal(unit_torque_force, force_along_normal, force_ortho, friction_coef)
-                colors = np.zeros((normal_force_result.shape[0], 3))
-                normal_force_result = np.log(normal_force_result)
-                normal_force_result = normal_force_result / np.max(normal_force_result)
-                colors[:, 0] = normal_force_result
-                pcd.colors = open3d.utility.Vector3dVector(colors)
-                open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
+        pcd_file_path = "{}/{}/{}_downsample.pcd".format(CLOUD_DIR, self.objectID, part_name)
+        pcd_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            pcd_file_path)
+        pcd = open3d.io.read_point_cloud(pcd_file_path)
+        joint, xyz, axis = self.find_axis(part_name)
+        if joint:
+            points = [xyz - axis * 5, xyz + axis * 5]
+            lines = [[0, 1]]
+            lineset = open3d.geometry.LineSet(
+                points=open3d.utility.Vector3dVector(points),
+                lines=open3d.utility.Vector2iVector(lines),
+            )
+            colors = [[1, 0, 0]] if joint == 'prismatic' else [[0, 1, 0]]
+            lineset.colors = open3d.utility.Vector3dVector(colors)
+            mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
+            
+            unit_torque_force, force_along_normal, force_ortho = \
+                self.eval_grasp(np.asarray(pcd.points), np.asarray(pcd.normals), xyz, axis)
+            normal_force_result = self.eval_required_normal(unit_torque_force, force_along_normal, force_ortho, friction_coef)
+            colors = np.zeros((normal_force_result.shape[0], 3))
+            normal_force_result = np.log(normal_force_result)
+            normal_force_result = normal_force_result / np.max(normal_force_result)
+            colors[:, 0] = normal_force_result
+            pcd.colors = open3d.utility.Vector3dVector(colors)
+            open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
 
-    def find_axis(self, part):
+    def find_axis(self, joint_name):
         ''' Get axis point and axis direction from URDF file.
         '''
         robot_root = self.object_root
         for joint in robot_root.findall("joint"):
             if joint.get('type') in ['prismatic', 'revolute', 'continuous']:
-                if joint.find('child').get('link') == part:
+                print(joint.find('child').get('link'))
+                if joint.get('name') == joint_name:
                     axis = joint.find('axis')
                     if axis is None:
                         axis = '1 0 0'
@@ -244,7 +245,9 @@ class WholeObjectEvaluator(BaseEvaluator):
                         axis = axis.get('xyz')
                     axis = np.array([float(x) for x in axis.split()])
                     assert axis.shape == (3, )
-                    link = [l for l in robot_root.findall('link') if l.get('name') == part][0]
+
+                    child_link_name = joint.find('child').get('link')
+                    link = [l for l in robot_root.findall('link') if l.get('name') == child_link_name][0]
                     col = link.find('collision')
                     origin = col.find('origin')
                     xyz = np.array([float(x) for x in origin.get('xyz').split()])
@@ -253,4 +256,5 @@ class WholeObjectEvaluator(BaseEvaluator):
                     if joint.get('type') == 'prismatic':
                         xyz = np.array([0, 0, 0])
                     return joint.get('type'), -xyz, axis
+        print("here")
         return None, None, None

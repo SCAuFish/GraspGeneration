@@ -36,8 +36,12 @@ for i in range(len(objects)):
         print("Done raw grasp generation")
 
         # 4. Filter grasps that are on fixed links. Back to 2 
-        filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(objDir), objId, 
+        try:
+            filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(objDir), objId, 
                            "/cephfs/chs091/clouds/{}/info.json".format(objDir), 
                            "/cephfs/chs091/clouds/{}/raw_grasp.out".format(objDir), 
                            "/cephfs/chs091/clouds/{}/filtered.out".format(objDir),
                            ASSET_DIR)
+        except:
+            print("Failed grasp filtering on {}".format(objId))
+            break

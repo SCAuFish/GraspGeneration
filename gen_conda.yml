@@ -1,4 +1,4 @@
-name:  grasp_gen
+name:  grasp_gen_conda
 channels:
     - defaults
     - open3d-admin

@@ -11,6 +11,8 @@ from scipy.stats import mode
 
 import numpy as np
 
+CLOUD_DIR = '/cephfs/chs091/col_clouds/'
+
 def npz2pcd(npz_file, pcd_out_file):
     npz_pc = np.load(npz_file)
     pcd = open3d.geometry.PointCloud()
@@ -125,7 +127,7 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
         }
 
     import json
-    dirname = '../clouds/{}_{}'.format(id, seed if seed is not None else 'init')
+    dirname = '{}/{}_{}'.format(CLOUD_DIR, id, seed if seed is not None else 'init')
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, 'info.json'), 'w') as f:
         json.dump({'seed': seed, 'info': link_info}, f)
@@ -193,4 +195,5 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
 
 import sys
 if __name__ == "__main__":
-    generate_point_cloud(sys.argv[1], int(sys.argv[2]), sys.argv[3], render_collision=False)
+    print("Generating in folder: {}".format(CLOUD_DIR))
+    generate_point_cloud(sys.argv[1], int(sys.argv[2]), sys.argv[3], render_collision=True)

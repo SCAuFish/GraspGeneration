@@ -1,9 +1,9 @@
 # This is the start point of grasp generation pipeline
 import os, sys
-from pcloud_src.data_generation import generate_point_cloud
-from grasp_src.utils import filter_fixed_parts
+from pcloud_src.data_generation import generate_point_cloud, CLOUD_DIR
+from grasp_src.utils import filter_and_score
 
-ASSET_DIR = '/cephfs/chs091/datasets'
+ASSET_DIR = '/cephfs/chs091/dataset'
 if len(sys.argv) > 1:
     # when running locally
     ASSET_DIR = sys.argv[1]
@@ -18,17 +18,17 @@ for i in range(len(objects)):
     seeds = [1]
     for i in range(len(seeds)):
         objDir = "{}_{}".format(objId, seeds[i])
-        if os.path.isdir("/cephfs/chs091/clouds/{}".format(objDir)):
+        if os.path.isdir("{}/{}".format(CLOUD_DIR, objDir)):
             # skip generated grasps
             continue
-        # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR)
+        # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
         exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
         if exit_code != 0:
             print("Failed pointcloud generation on {}".format(objId))
             break
 
         # 3. Generate raw grasps
-        exit_code = os.system('./grasp_src/grasp_gen /cephfs/chs091/clouds/{}/all.pcd /cephfs/chs091/clouds/{}/raw_grasp.out'.format(objDir, objDir))
+        exit_code = os.system(f'./grasp_src/grasp_gen {CLOUD_DIR}/{objDir}/all.pcd {CLOUD_DIR}/{objDir}/raw_grasp.out')
         if exit_code != 0:
             print("Failed grasp generation on {}".format(objId))
             break
@@ -37,10 +37,10 @@ for i in range(len(objects)):
 
         # 4. Filter grasps that are on fixed links. Back to 2 
         try:
-            filter_fixed_parts("/cephfs/chs091/clouds/{}/all.npz".format(objDir), objId, 
-                           "/cephfs/chs091/clouds/{}/info.json".format(objDir), 
-                           "/cephfs/chs091/clouds/{}/raw_grasp.out".format(objDir), 
-                           "/cephfs/chs091/clouds/{}/filtered.out".format(objDir),
+            filter_and_score("{}/{}/all.npz".format(CLOUD_DIR, objDir), objId, 
+                           "{}/{}/info.json".format(CLOUD_DIR, objDir), 
+                           "{}/{}/raw_grasp.out".format(CLOUD_DIR, objDir), 
+                           "{}/{}/filtered.out".format(CLOUD_DIR, objDir),
                            ASSET_DIR)
         except:
             print("Failed grasp filtering on {}".format(objId))

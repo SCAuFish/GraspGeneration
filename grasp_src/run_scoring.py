@@ -239,9 +239,12 @@ if __name__ == "__main__":
     cloud_dir = "/cephfs/chs091/clouds"
     for object_dir in os.listdir(cloud_dir):
         obj_id = object_dir.split("_")[0]
-        filter_and_score(f"{cloud_dir}/{object_dir}/all.npz", 
-                        obj_id, 
-                        f"{cloud_dir}/{object_dir}/info.json", 
-                        f"{cloud_dir}/{object_dir}/raw_grasp.out", 
-                        f"{cloud_dir}/{object_dir}/scored.out", 
-                        "/cephfs/chs091/dataset/")
+        try:
+            filter_and_score(f"{cloud_dir}/{object_dir}/all.npz", 
+                            obj_id, 
+                            f"{cloud_dir}/{object_dir}/info.json", 
+                            f"{cloud_dir}/{object_dir}/raw_grasp.out", 
+                            f"{cloud_dir}/{object_dir}/scored.out", 
+                            "/cephfs/chs091/dataset/")
+        except:
+            print(f"Failed scoring {obj_id}")

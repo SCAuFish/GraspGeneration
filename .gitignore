@@ -150,3 +150,9 @@ nautilus_buffer/103528_raw.out
 nautilus_buffer/103528.out
 nautilus_buffer/103528.pcd
 pcloud_src/env.py
+clouds/103424_1/all.npz
+clouds/103424_1/all.pcd
+clouds/103424_1/filtered.out
+clouds/103424_1/info.json
+clouds/103424_1/raw_grasp.out
+clouds/103424_1/scored.out

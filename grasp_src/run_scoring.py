@@ -119,7 +119,15 @@ class WholeObjectEvaluator():
                     child_link_name = joint.find('child').get('link')
                     link = [l for l in robot_root.findall('link') if l.get('name') == child_link_name][0]
                     col = link.find('collision')
+
+                    if col is None:
+                        return None,None, None
+
                     origin = col.find('origin')
+
+                    if origin is None:
+                        return None, None, None
+
                     xyz = np.array([float(x) for x in origin.get('xyz').split()])
                     assert xyz.shape == (3, )
                     assert origin.get('rpy') is None

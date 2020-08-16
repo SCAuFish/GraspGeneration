@@ -61,7 +61,7 @@ def random_configuration(seed: int, articulation: sc.Articulation):
     return np.array(q)
 
 
-def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset'):
+def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset', collisionIsVisual=False):
     with open(os.path.join(os.path.dirname(__file__), 'icosphere2.vertices'), 'r') as f:
         sphere_points = np.array([[float(n) for n in line.strip().split()] for line in f])
 
@@ -79,6 +79,7 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset')
     urdf = os.path.join(dataset_dir, id, "mobility.urdf")
     loader = scene.create_urdf_loader()
     loader.fix_root_link = True
+    loader.collision_is_visual = collisionIsVisual
     articulation = loader.load(urdf)
 
     cm = scene.create_actor_builder().build(True)

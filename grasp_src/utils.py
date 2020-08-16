@@ -11,7 +11,7 @@ from collections import defaultdict
 
 class WholeObjectEvaluator():
     def __init__(self, objectId, ASSET_DIR):
-        object_urdf_path = ASSET_DIR + objectId
+        object_urdf_path = ASSET_DIR + "/" + objectId
         filepath = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                 object_urdf_path+"/mobility.urdf")
         self.objectID    = objectId

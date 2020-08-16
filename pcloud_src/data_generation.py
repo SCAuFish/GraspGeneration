@@ -61,7 +61,7 @@ def random_configuration(seed: int, articulation: sc.Articulation):
     return np.array(q)
 
 
-def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset', collisionIsVisual=False):
+def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset', render_collision=False):
     with open(os.path.join(os.path.dirname(__file__), 'icosphere2.vertices'), 'r') as f:
         sphere_points = np.array([[float(n) for n in line.strip().split()] for line in f])
 
@@ -79,8 +79,12 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
     urdf = os.path.join(dataset_dir, id, "mobility.urdf")
     loader = scene.create_urdf_loader()
     loader.fix_root_link = True
-    loader.collision_is_visual = collisionIsVisual
     articulation = loader.load(urdf)
+    if render_collision:
+        # render collision instead of visual
+        for link in articulation.get_links():
+            link.render_collision()
+
 
     cm = scene.create_actor_builder().build(True)
     c = scene.add_mounted_camera('', cm, sc.Pose(), 512, 512, 0, 70 / 180 * np.pi, -10, 10)
@@ -121,7 +125,7 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
         }
 
     import json
-    dirname = '/cephfs/chs091/clouds/{}_{}'.format(id, seed if seed is not None else 'init')
+    dirname = '../clouds/{}_{}'.format(id, seed if seed is not None else 'init')
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, 'info.json'), 'w') as f:
         json.dump({'seed': seed, 'info': link_info}, f)
@@ -189,4 +193,4 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
 
 import sys
 if __name__ == "__main__":
-    generate_point_cloud(sys.argv[1], int(sys.argv[2]), sys.argv[3])
+    generate_point_cloud(sys.argv[1], int(sys.argv[2]), sys.argv[3], render_collision=False)

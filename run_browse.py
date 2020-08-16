@@ -21,6 +21,12 @@ if __name__ == "__main__":
     
     print("Here is a list of avaiable categories")
     print(list(categories.keys()))
+
+    CLOUD_DIR = "/cephfs/chs091/clouds"
+    if "--collision" in sys.argv:
+        print("Using collision-based point clouds")
+        CLOUD_DIR = "/cephfs/chs091/col_clouds"
+
     while True:
         print()
         user_input = input("Type in an object ID or a category: ")
@@ -38,11 +44,11 @@ if __name__ == "__main__":
             else:
                 print(f"{user_input} is not a valid id or category name")
 
-        copied = os.system(f"kubectl cp chs091-connection:/cephfs/chs091/clouds/{objId}_1/all.pcd "
+        copied = os.system(f"kubectl cp chs091-connection:{CLOUD_DIR}/{objId}_1/all.pcd "
                            f"./nautilus_buffer/{objId}.pcd -n ucsd-haosulab")
-        copied = os.system(f"kubectl cp chs091-connection:/cephfs/chs091/clouds/{objId}_1/filtered.out "
+        copied = os.system(f"kubectl cp chs091-connection:{CLOUD_DIR}/{objId}_1/filtered.out "
                            f"./nautilus_buffer/{objId}.out -n ucsd-haosulab")
-        copied = os.system(f"kubectl cp chs091-connection:/cephfs/chs091/clouds/{objId}_1/raw_grasp.out "
+        copied = os.system(f"kubectl cp chs091-connection:{CLOUD_DIR}/{objId}_1/raw_grasp.out "
                            f"./nautilus_buffer/{objId}_raw.out -n ucsd-haosulab")
         if copied != 0:
             print(f"Object {objId} does not exist") 

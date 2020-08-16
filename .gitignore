@@ -156,3 +156,8 @@ clouds/103424_1/filtered.out
 clouds/103424_1/info.json
 clouds/103424_1/raw_grasp.out
 clouds/103424_1/scored.out
+nautilus_buffer/39628_raw.out
+nautilus_buffer/39628.pcd
+vis_src/__pycache__/__init__.cpython-37.pyc
+vis_src/__pycache__/eval_util.cpython-37.pyc
+vis_src/__pycache__/run.cpython-37.pyc

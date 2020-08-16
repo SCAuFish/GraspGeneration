@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: chs091-grasp-scoring # Replace with something like "${USER_NAME}-{EXP_NAME}"
+  name: chs091-collision-3 # Replace with something like "${USER_NAME}-{EXP_NAME}"
   namespace: ucsd-haosulab
   labels:
     user: chs091  # Specify your name
@@ -13,7 +13,7 @@ spec:
       - name: gpu-container
         image: aufish1999/cuda:1.0  # docker image
         imagePullPolicy: Always
-        command : ['sh', '-c', '/cephfs/chs091/setup_and_score.sh']
+        command : ['sh', '-c', '/cephfs/chs091/setup_grasp_gen_env_3.sh']
         resources:
           requests:
             cpu: "1"

@@ -7,6 +7,7 @@ ASSET_DIR = '/cephfs/chs091/dataset'
 if len(sys.argv) > 1:
     # when running locally
     ASSET_DIR = sys.argv[1]
+print("Using objects in {}".format(ASSET_DIR))
 objects = os.listdir(ASSET_DIR)
 
 for i in range(len(objects)):

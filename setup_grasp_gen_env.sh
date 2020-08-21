@@ -8,5 +8,5 @@ cd /workspace/GraspGeneration
 
 echo "Hello again" >> /workspace/hello.txt
 
-conda run -n grasp_gen_conda python3 run.py $1
-#> /cephfs/chs091/log.txt 2>&1
+DATASET_PREFIX="/cephfs/chs091/dataset_part_"
+conda run -n grasp_gen_conda python3 run.py $DATASET_PREFIX/$1 > /cephfs/chs091/log_$1.txt 2>&1

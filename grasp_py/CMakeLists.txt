@@ -14,3 +14,4 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 pybind11_add_module(AntiGrasp src/PointCloud.cu src/PointCloud.h src/module.cpp)
+add_executable(test src/PointCloud.cu src/PointCloud.h src/test.cpp)

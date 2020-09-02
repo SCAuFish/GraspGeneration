@@ -249,48 +249,48 @@ void generateGraspBrute(Point* points, float friction_coef, float jaw_span, int 
  */
 __global__
 void generateGraspSinglePoint(int* scores, Point* points, float friction_coef, float jaw_span, int point_num, int candidateNum,
-    float aabbInnerRadius, float aabbOuterRadius, float gripperHeight, Point& p){
-   int point_index = threadIdx.x + blockIdx.x * blockDim.x;
-   int stride = blockDim.x * gridDim.x;
-   for (int i = point_index; i < point_num; i+= stride) {
-       Point& another = points[i];
-       scores[i]     = 100000;
-
-       float diff_x, diff_y, diff_z;
-       diff_x = another.x - p.x;
-       diff_y = another.y - p.y;
-       diff_z = another.z - p.z;
-
-       float square_norm = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-       if (diff_x * diff_x + diff_y * diff_y + diff_z * diff_z > jaw_span * jaw_span){
-           // too far for the jaw
-           continue;
-       }
-
-       float angle1     = -diff_x * p.nx - diff_y * p.ny - diff_z * p.nz;
-       float cos_angle1 = angle1 / sqrtf(square_norm);
-       float tan_angle1 = tanf(acosf(cos_angle1));
-
-       float angle2     = diff_x * another.nx + diff_y * another.ny + diff_z * another.nz;
-       float cos_angle2 = angle2 / sqrtf(square_norm);
-       float tan_angle2 = tanf(acosf(cos_angle2));
-
-       if ( cos_angle1 < 0.0001 || tan_angle1 > friction_coef || cos_angle2 < 0.0001 || tan_angle2 > friction_coef) {
-           // Out of friction cone
-           continue;
-       } 
-       else {
-           float3 noCollisionDir = collidedWithGripper(points, point_num, p, another, aabbInnerRadius, aabbOuterRadius, gripperHeight);
-           if (norm(noCollisionDir) < 0.01){
-               continue;
-           }
-           else {
-               // Use the maximum angle as score -- the larger the worse
-               float score = tan_angle1 > tan_angle2 ? tan_angle1 : tan_angle2;
-               scores[i] = score;
-           }
-       }
-   } 
+    float aabbInnerRadius, float aabbOuterRadius, float gripperHeight, Point* p){
+    int point_index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = point_index; i < point_num; i+= stride) {
+        Point& another = points[i];
+        scores[i]     = 100000;
+ 
+        float diff_x, diff_y, diff_z;
+        diff_x = another.x - p -> x;
+        diff_y = another.y - p -> y;
+        diff_z = another.z - p -> z;
+ 
+        float square_norm = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+        if (diff_x * diff_x + diff_y * diff_y + diff_z * diff_z > jaw_span * jaw_span){
+            // too far for the jaw
+            continue;
+        }
+ 
+        float angle1     = -diff_x * p -> nx - diff_y * p -> ny - diff_z * p -> nz;
+        float cos_angle1 = angle1 / sqrtf(square_norm);
+        float tan_angle1 = tanf(acosf(cos_angle1));
+ 
+        float angle2     = diff_x * another.nx + diff_y * another.ny + diff_z * another.nz;
+        float cos_angle2 = angle2 / sqrtf(square_norm);
+        float tan_angle2 = tanf(acosf(cos_angle2));
+ 
+        if ( cos_angle1 < 0.0001 || tan_angle1 > friction_coef || cos_angle2 < 0.0001 || tan_angle2 > friction_coef) {
+            // Out of friction cone
+            continue;
+        } 
+        else {
+            float3 noCollisionDir = collidedWithGripper(points, point_num, *p, another, aabbInnerRadius, aabbOuterRadius, gripperHeight);
+            if (norm(noCollisionDir) < 0.01){
+                continue;
+            }
+            else {
+                // Use the maximum angle as score -- the larger the worse
+                float score = tan_angle1 > tan_angle2 ? tan_angle1 : tan_angle2;
+                scores[i] = score;
+            }
+        }
+    } 
 }
 
 
@@ -342,12 +342,11 @@ void Point::addAntipodal(int index, float score, int candidateNum, float3 noColl
  * A wrapper function to return antipodal points saved on this point
  */
 std::vector<int> Point::getAntiPoints() {
-    std::vector<int> result(this -> generated_grasp, -1);
+    std::vector<int> result;
 
     int* candidate_iter = this -> antiPoints;
     for (int i = 0; i < this -> generated_grasp; i++) {
         result.push_back(candidate_iter[i]);
-        candidate_iter ++;
     }
 
     return result;
@@ -459,9 +458,13 @@ void PointCloud::generateGraspsBrute(float friction_coef, float jaw_span){
 
 void PointCloud::generateGraspsSinglePoint(float friction_coef, float jaw_span, Point& p) {
     int* scores;
+    Point* givenPoint;
+
     cudaMallocManaged(&scores, this->size);
+    cudaMallocManaged(&givenPoint, sizeof(Point));
+    cudaMemcpy(givenPoint, &p, sizeof(Point), cudaMemcpyHostToDevice);
     generateGraspSinglePoint<<<128, 256>>>(scores, this -> cloud, friction_coef, jaw_span, 
-        this->size, this->candidateNum, 0.1, 0.2, 0.2, p);
+        this->size, this->candidateNum, 0.1, 0.2, 0.2, givenPoint);
     cudaDeviceSynchronize();
 
     // max heap but we want the points with smallest score
@@ -474,7 +477,8 @@ void PointCloud::generateGraspsSinglePoint(float friction_coef, float jaw_span, 
     for (int i = 0; i < this -> candidateNum; i++) {
         p_score curr_best = sorted_scores.top();
         sorted_scores.pop();
-
+        if (abs(curr_best.second-100000) < 1) break;
+        p.generated_grasp += 1;
         p.antiPoints[i] = curr_best.first;
     }
 }

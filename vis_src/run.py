@@ -2,8 +2,8 @@ import numpy as np
 import open3d
 import random
 
-from .evaluator import EnvFreeRevoluteEvaluator, WholeObjectEvaluator
-from .eval_util import get_paired_score
+from evaluator import EnvFreeRevoluteEvaluator, WholeObjectEvaluator
+from eval_util import get_paired_score
 
 def get_grasps(grasp_file):
     lines = []

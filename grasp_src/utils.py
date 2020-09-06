@@ -194,10 +194,15 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
     for seg in seg2link_joint:
         # 4.1 find information about the current joint
         joint, xyz, axis = evaluator.find_axis(seg2link_joint[seg][1])
-        axis = np.array([0, 0, 1])
         if joint == None:
             continue
             
+        # The x axis in joint frame is its rotation axis
+        xyz_dir    = (joint2pose[seg2link_joint[seg][1]] * sapien.Pose([1, 0, 0])).p
+        xyz_origin = (joint2pose[seg2link_joint[seg][1]] * sapien.Pose([0, 0, 0])).p
+
+        axis = xyz_dir - xyz_origin
+        xyz  = xyz_origin
         # 4.2 Get grasps that is related to current joint
         grasps  = part2grasps[seg]
         proposal_dict = defaultdict(list)
@@ -227,9 +232,9 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
     proposal_writer.close()
 
 if __name__ == "__main__":
-    filter_and_score("../clouds/102692_1/all.npz", 
-                    102692, 
-                    "../clouds/102692_1/info.json", 
-                    "../clouds/102692_1/raw_grasp.out", 
-                    "../clouds/102692_1/scored.out", 
+    filter_and_score("../clouds/46906_1/all.npz", 
+                    46906, 
+                    "../clouds/46906_1/info.json", 
+                    "../clouds/46906_1/raw_grasp.out", 
+                    "../clouds/46906_1/test_filtered.out", 
                     "../../dataset/")

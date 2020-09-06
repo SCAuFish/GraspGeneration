@@ -1,6 +1,6 @@
 import numpy as np
 import sapien.core as sapien
-from .evaluator import EnvFreeRevoluteEvaluator
+from evaluator import EnvFreeRevoluteEvaluator
 import open3d
 import os
 from typing import List

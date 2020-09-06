@@ -236,7 +236,7 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
 
 import sys
 if __name__ == "__main__":
-    cloud_dir = "/cephfs/chs091/clouds"
+    cloud_dir = "/home/aufish/Documents/grasp_data/clouds_col"
     for object_dir in os.listdir(cloud_dir):
         obj_id = object_dir.split("_")[0]
         try:
@@ -244,7 +244,8 @@ if __name__ == "__main__":
                             obj_id, 
                             f"{cloud_dir}/{object_dir}/info.json", 
                             f"{cloud_dir}/{object_dir}/raw_grasp.out", 
-                            f"{cloud_dir}/{object_dir}/scored.out", 
-                            "/cephfs/chs091/dataset/")
-        except:
+                            f"{cloud_dir}/{object_dir}/filtered.out", 
+                            "/home/aufish/Documents/grasp_data/dataset/")
+        except Exception as e:
+            print(e)
             print(f"Failed scoring {obj_id}")

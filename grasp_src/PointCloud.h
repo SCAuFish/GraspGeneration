@@ -8,17 +8,18 @@
 #endif
 
 #include <vector>
+#include <tuple>
+#include <stdexcept>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
+#include <Eigen/LU>
 
 class Point{
     public:
     float x, y, z;
     float nx, ny, nz;
-    float normal_length_square;
-    int   gridX, gridY, gridZ;
-    int   index;
-    int   generated_grasp, filteredGraspNum;
+    int index;
+    int   generated_grasp, filteredGraspNum, candidateNum;
 
     // Generated antipodal points and their scores
     int*  antiPoints;
@@ -27,6 +28,10 @@ class Point{
     float  worst_score;
     
     CUDA_HOSTDEV void addAntipodal(int index, float score, int candidateNum, float3 noCollisionDir);
+    std::vector<int> getAntiPoints();
+    std::vector<float> getAntiScores();
+    std::vector<Eigen::Vector3f> getAntiDirs();
+    Point(float x, float y, float z, float nx, float ny, float nz, int candidateNum);
     ~Point();
 };
 
@@ -43,8 +48,10 @@ class PointCloud{
     int    candidateNum;
 
     PointCloud(Point* pointList, int size, int candidateNum);
+    PointCloud(std::vector<Point*>& pointList, int candidateNum);
 
     void generateGraspsBrute(float friction_coef, float jaw_span);
+    void generateGraspsSinglePoint(float friction_coef, float jaw_span, Point& p);
     void filterGraspsByNeighbor();
 
     ~PointCloud();

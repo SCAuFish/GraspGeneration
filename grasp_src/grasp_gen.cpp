@@ -19,15 +19,18 @@ int main (int argc, char** argv)
     return -1;
   }
 
+  int candidate_num = 10;
   Point* pCloud = (Point*) malloc(cloud->points.size() * sizeof(Point));
   for (int i = 0; i < cloud->points.size(); i++){
-    Point p;
-    p.x  = cloud->points[i].x;
-    p.y  = cloud->points[i].y;
-    p.z  = cloud->points[i].z;
-    p.nx = cloud->points[i].normal_x;
-    p.ny = cloud->points[i].normal_y;
-    p.nz = cloud->points[i].normal_z;
+    Point p(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z,
+        cloud->points[i].normal_x, cloud->points[i].normal_y, cloud->points[i].normal_z,
+        candidate_num);
+//    p.x  = cloud->points[i].x;
+//    p.y  = cloud->points[i].y;
+//    p.z  = cloud->points[i].z;
+//    p.nx = cloud->points[i].normal_x;
+//    p.ny = cloud->points[i].normal_y;
+//    p.nz = cloud->points[i].normal_z;
     p.index = i;
     p.generated_grasp = 0;
     p.filteredGraspNum = 0;
@@ -35,7 +38,7 @@ int main (int argc, char** argv)
     pCloud[i] = p;
   }
 
-  PointCloud p(pCloud, cloud->points.size(), 10);
+  PointCloud p(pCloud, cloud->points.size(), candidate_num);
   p.generateGraspsBrute(0.7, 0.1);
   std::cout << "done grasp generation" << std::endl;
 

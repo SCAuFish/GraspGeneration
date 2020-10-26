@@ -33,7 +33,8 @@ elif args.objects == 'storage_mixed':
 
 for i in range(len(object_list)):
     objId = object_list[i].split("_")[0]
-    print("Generating on ID {} -- {}/{}".format(objects[i], i+1, len(objects)))
+    print("Generating on ID {} -- {}/{}".format(object_list[i], i+1, len(object_list)))
+    print("Skipping pcd configure: {}".format(args.skip_pcd))
 
     # 2. Generate pcd file for a point cloud
     # add more pose with other seeds here
@@ -43,8 +44,8 @@ for i in range(len(object_list)):
         if os.path.isdir("{}/{}".format(CLOUD_DIR, objDir)):
             # skip generated grasps
             continue
-        # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
         if not args.skip_pcd:
+            # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
             exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
             if exit_code != 0:
                 print("Failed pointcloud generation on {}".format(objId))

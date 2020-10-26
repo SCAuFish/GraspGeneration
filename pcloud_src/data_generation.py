@@ -12,6 +12,9 @@ from scipy.stats import mode
 import numpy as np
 
 CLOUD_DIR = '/cephfs/chs091/col_clouds/'
+CLOUD_DIR = '~/Documents/grasp_data/grasp_gen_prod/'
+
+OUTPUT_DIR = CLOUD_DIR
 
 def npz2pcd(npz_file, pcd_out_file):
     npz_pc = np.load(npz_file)
@@ -20,6 +23,8 @@ def npz2pcd(npz_file, pcd_out_file):
     pcd.normals = open3d.utility.Vector3dVector(npz_pc['normals'])
 
     open3d.io.write_point_cloud(pcd_out_file, pcd)
+
+
 def direction2quat(direction):
     x = direction / np.linalg.norm(direction)
     r = np.cross(direction, [0, 0, -1])
@@ -42,7 +47,7 @@ def global_point_cloud(depth, points, normal, model):
     return world_points[:, :3], world_normals[:, :3]
 
 
-def initial_configuration(articulation:sc.Articulation):
+def initial_configuration(articulation: sc.Articulation):
     limits = articulation.get_qlimits()
     q = []
     for l in limits:
@@ -55,15 +60,17 @@ def initial_configuration(articulation:sc.Articulation):
 def random_configuration(seed: int, articulation: sc.Articulation):
     np.random.seed(seed)
     limits = articulation.get_qlimits()
-    q = []
-    for l in limits:
+    q = [0 for i in range(len(limits))]
+    for i in range(len(limits)):
+        l = limits[i]
         if l[0] < -100:
-            q.append(np.random.random() * np.pi * 2 - np.pi)
-        q.append(np.random.random() * (l[1] - l[0]) + l[0])
+            q[i] = (np.random.random() * np.pi * 2 - np.pi)
+        else:
+            q[i] = (np.random.random() * (l[1] - l[0]) + l[0])
     return np.array(q)
 
 
-def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset', render_collision=False):
+def generate_point_cloud(id: str, seed: int = None, dataset_dir='../../dataset', render_collision=False, obj_scale=1):
     with open(os.path.join(os.path.dirname(__file__), 'icosphere2.vertices'), 'r') as f:
         sphere_points = np.array([[float(n) for n in line.strip().split()] for line in f])
 
@@ -80,13 +87,13 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
 
     urdf = os.path.join(dataset_dir, id, "mobility.urdf")
     loader = scene.create_urdf_loader()
+    loader.scale = obj_scale
     loader.fix_root_link = True
     articulation = loader.load(urdf)
     if render_collision:
         # render collision instead of visual
         for link in articulation.get_links():
             link.render_collision()
-
 
     cm = scene.create_actor_builder().build(True)
     c = scene.add_mounted_camera('', cm, sc.Pose(), 512, 512, 0, 70 / 180 * np.pi, -10, 10)
@@ -103,6 +110,8 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
         scene.step()
 
     link_info = {}
+    print(articulation.get_qpos())
+    link_info['qpos'] = str(articulation.get_qpos())
     for link, joint in zip(articulation.get_links(), articulation.get_joints()):
         if link.name == 'base':
             continue
@@ -127,11 +136,10 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
         }
 
     import json
-    dirname = '{}/{}_{}'.format(CLOUD_DIR, id, seed if seed is not None else 'init')
+    dirname = '{}/{}_{}'.format(OUTPUT_DIR, id, seed if seed is not None else 'init')
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, 'info.json'), 'w') as f:
         json.dump({'seed': seed, 'info': link_info}, f)
-
 
     for l in articulation.get_links():
         l.unhide_visual()
@@ -165,7 +173,8 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
         else:
             all_cloud += cloud
 
-    downsampled, _, indices = all_cloud.voxel_down_sample_and_trace(0.005, all_cloud.get_min_bound(), all_cloud.get_max_bound())
+    downsampled, _, indices = all_cloud.voxel_down_sample_and_trace(0.005, all_cloud.get_min_bound(),
+                                                                    all_cloud.get_max_bound())
     print('Downsample finished')
 
     ss = []
@@ -194,6 +203,21 @@ def generate_point_cloud(id : str, seed : int=None, dataset_dir='../../dataset',
 
 
 import sys
+import argparse
+
 if __name__ == "__main__":
-    print("Generating in folder: {}".format(CLOUD_DIR))
-    generate_point_cloud(sys.argv[1], int(sys.argv[2]), sys.argv[3], render_collision=True)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--dataset_dir", help="the directory to which object urdfs and other related files are saved")
+    parser.add_argument("--output_to", help="the directory storing object files (urdf)")
+    parser.add_argument("--object_id", help="the object id that grasps will be generated on")
+    parser.add_argument("--pose_id", help="the pose random init seed for the object")
+    parser.add_argument("--scale",
+                        help="the scale of the loaded object. By default the object will be in 1-meter unit sphere",
+                        default=1)
+
+    args = parser.parse_args()
+    OUTPUT_DIR = args.output_to
+    print("Generating in folder: {}".format(args.output_to))
+
+    generate_point_cloud(args.object_id, int(args.pose_id), args.dataset_dir, obj_scale=float(args.scale), render_collision=True)

@@ -17,7 +17,7 @@ class WholeObjectEvaluator():
         self.objectID    = objectId
         self.object_root = ET.parse(filepath)
 
-    def eval_grasp(self, contact_point, contact_normal, axisPoint, axisDir):
+    def eval_grasp(self, contact_point, contact_normal, axisPoint, axisDir, joint:str):
         ''' Take a one contact point, evaluate the contact point
 
             ? Maybe should also evaluate how much to exert along the contact axis to achieve unit
@@ -28,6 +28,7 @@ class WholeObjectEvaluator():
                     axis - axis of the joint, should be in the same frame as contact_point and contact_normal
                         axisPoint is the point through which the axis passes
                         axisDir is the direction of the axis (3x1 vector)
+                    joint - joint type ("revolute", "prismatic", "continuous")
 
             return: force to generate unit torque, projection of unit force on contact normal,
                     projection of unit force on contact tangent
@@ -35,6 +36,7 @@ class WholeObjectEvaluator():
         # 0. Check dimensions, each row is a point/normal
         assert contact_normal.shape[1] == 3
         assert contact_point.shape[1]  == 3
+        assert joint in ['prismatic', 'revolute', 'continuous']
         axisPoint     = axisPoint.reshape(1, 3)
         axisDir       = axisDir.reshape(1, 3)
         # 1. use origin_in_world and direction_in_world to calculate force arm to the contact points
@@ -45,6 +47,8 @@ class WholeObjectEvaluator():
 
         # 2. use force arm to calculate unit force on contact point
         unit_torque_force = 1 / force_arm
+        if joint == 'prismatic':
+            unit_torque_force *= force_arm
 
         # 3. Evaluate how much force is required along and orthogonal to contact normal to create unit force
         # orthogonal to force_arm
@@ -52,6 +56,9 @@ class WholeObjectEvaluator():
         unit_direction = axisDir / norm(axisDir)
         force_arm_vector_origin = axisPoint + ((contact_point - axisPoint.reshape(1, 3)) @ unit_direction.transpose()) * unit_direction
         force_arm_vector        = contact_point - force_arm_vector_origin
+        if joint == 'prismatic':
+            # For prismatic joint, all force_arms are considered to have same lengths
+            force_arm_vector /= force_arm_vector
 
         # 3.2 Calculate unit force orthogonal to force-arm, on the same plane as contact normal and force-arm
         ortho_force  = np.cross(force_arm_vector, axisDir)
@@ -127,28 +134,19 @@ class WholeObjectEvaluator():
                         xyz = np.array([0, 0, 0])
                     return joint.get('type'), -xyz, axis
         return None, None, None
-
-
-def get_paired_score(p1: int, p2: int, unit_torque_force: np.ndarray, force_along_normal: np.ndarray, force_ortho: np.ndarray, friction_coef=0.7):
+    
+def get_paired_score(unit_torque_force: np.ndarray, force_along_normal: np.ndarray, force_ortho: np.ndarray, friction_coef=0.7):
     ''' Hypothesis: if two contact points are exerting force, the sum of two minimum normal forces are always greater than the
                     minimum normal force of only using one of the contact point.
     '''
     # Consider first rotation direction: require negative force along normal (rotating along axis)
-    nf1, nf2 = None, None
-    nf1 = unit_torque_force[p1] / (np.abs(np.clip(force_along_normal[p1], -10000, 0)) + friction_coef * np.abs(force_ortho[p1]))
-    nf2 = unit_torque_force[p2] / (np.abs(np.clip(force_along_normal[p2], -10000, 0)) + friction_coef * np.abs(force_ortho[p2]))
-
-    dir1nf = min(nf1, nf2)
+    dir1nf = unit_torque_force / (np.abs(np.clip(force_along_normal, -10000, 0)) + friction_coef * np.abs(force_ortho))
 
     # Consider the second dirction: require positive force along normal (rotating anti axis)
-    nf1, nf2 = None, None
-    nf1 = unit_torque_force[p1] / (np.clip(force_along_normal[p1], 0, 10000) + friction_coef * np.abs(force_ortho[p1]))
-    nf2 = unit_torque_force[p2] / (np.clip(force_along_normal[p2], 0, 10000) + friction_coef * np.abs(force_ortho[p2]))
-
-    dir2nf = min(nf1, nf2)
+    dir2nf = unit_torque_force / (np.clip(force_along_normal, 0, 10000) + friction_coef * np.abs(force_ortho))
 
     return (dir1nf, dir2nf)
-    
+
 def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, output_file, ASSET_DIR, friction_coef=0.7):
     # 1. Read in grasp proposals
     pointcloud = np.load(object_npz)
@@ -211,7 +209,9 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
 
             proposal_dict[p1].append(all_info)
 
-        unit_torque_force, force_along_normal, force_ortho = evaluator.eval_grasp(points, normals, xyz, axis)
+        # Calculate required normal force on each point
+        unit_torque_force, force_along_normal, force_ortho = evaluator.eval_grasp(points, normals, xyz, axis, joint)
+        dir1nf, dir2nf = get_paired_score(unit_torque_force, force_along_normal, force_ortho, friction_coef=friction_coef)
 
         for p in proposal_dict:
             output_str = "{}###".format(p)
@@ -220,7 +220,8 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
             pointIdx = int(p)
             for pair in pairs:
                 pairIdx = int(pair.strip().split(" ")[0])
-                score = get_paired_score(pointIdx, pairIdx, unit_torque_force, force_along_normal, force_ortho, friction_coef=friction_coef)
+                # score = get_paired_score(pointIdx, pairIdx, unit_torque_force, force_along_normal, force_ortho, friction_coef=friction_coef)
+                score = (min(dir1nf[pointIdx], dir1nf[pairIdx]), min(dir2nf[pointIdx], dir2nf[pairIdx]))
 
                 output_str += "{} {}| ".format(pair, score)
                 
@@ -231,10 +232,27 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
     print("Done score calculating")            
     proposal_writer.close()
 
+import argparse
 if __name__ == "__main__":
-    filter_and_score("../clouds/46906_1/all.npz", 
-                    46906, 
-                    "../clouds/46906_1/info.json", 
-                    "../clouds/46906_1/raw_grasp.out", 
-                    "../clouds/46906_1/test_filtered.out", 
-                    "../../dataset/")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", default="../clouds")
+    args = parser.parse_args()
+
+    for obj_dir in os.listdir(args.root):
+        try:
+            obj_id = int(obj_dir.split("_")[0])
+        except Exception as e:
+            print(e)
+            print(f"{obj_dir} is not a valid object dir")
+
+        print(f"processing {obj_dir}")
+        try:
+            filter_and_score(f"{args.root}/{obj_dir}/all.npz", 
+                            obj_id, 
+                            f"{args.root}/{obj_dir}/info.json", 
+                            f"{args.root}/{obj_dir}/raw_grasp.out", 
+                            f"{args.root}/{obj_dir}/filtered.out", 
+                            "../../dataset/")
+        except Exception as e:
+            print(e)
+            print(f"Failed grasp filtering on {obj_dir}")

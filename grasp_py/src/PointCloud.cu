@@ -262,7 +262,7 @@ void generateGraspSinglePoint(int* scores, Point* points, float friction_coef, f
         diff_z = another.z - p -> z;
  
         float square_norm = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-        if (diff_x * diff_x + diff_y * diff_y + diff_z * diff_z > jaw_span * jaw_span){
+        if (square_norm > jaw_span * jaw_span){
             // too far for the jaw
             continue;
         }
@@ -275,7 +275,12 @@ void generateGraspSinglePoint(int* scores, Point* points, float friction_coef, f
         float cos_angle2 = angle2 / sqrtf(square_norm);
         float tan_angle2 = tanf(acosf(cos_angle2));
  
-        if ( cos_angle1 < 0.0001 || tan_angle1 > friction_coef || cos_angle2 < 0.0001 || tan_angle2 > friction_coef) {
+
+        if (square_norm < 0.001 && abs(angle1 + angle2) < 0.001) {
+            //same point, or if they are too close
+            continue;
+        }
+        else if ( cos_angle1 < 0.1 || tan_angle1 > friction_coef || cos_angle2 < 0.1 || tan_angle2 > friction_coef) {
             // Out of friction cone
             continue;
         } 
@@ -409,7 +414,9 @@ PointCloud::PointCloud(Point* points, int size, int candidateNum){
 PointCloud::PointCloud(std::vector<Point>& pointList, int candidateNum){
     // create space for antiPoints for each point passed in
     for (int i = 0; i < pointList.size(); i++) {
-        assert (pointList[i].candidateNum == candidateNum);
+        if (pointList[i].candidateNum != candidateNum){
+            throw std::length_error("Candidate number mismatch for point and point cloud");
+        }
     }
 
     Point* points = (Point*) malloc(sizeof(Point) * pointList.size());
@@ -474,12 +481,18 @@ void PointCloud::generateGraspsSinglePoint(float friction_coef, float jaw_span, 
         sorted_scores.push(std::make_pair(i, scores[i]));
     }
 
-    for (int i = 0; i < this -> candidateNum; i++) {
+    while (p.generated_grasp < this->candidateNum && sorted_scores.size() > 0){
         p_score curr_best = sorted_scores.top();
         sorted_scores.pop();
+
+        if (&this->cloud[curr_best.first] == &p) {
+            // The candidate is the query point itself
+            continue;
+        }
+
         if (abs(curr_best.second-100000) < 1) break;
+        p.antiPoints[p.generated_grasp] = curr_best.first;
         p.generated_grasp += 1;
-        p.antiPoints[i] = curr_best.first;
     }
 }
 

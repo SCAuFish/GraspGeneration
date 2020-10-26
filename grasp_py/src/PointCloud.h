@@ -8,6 +8,7 @@
 #endif
 
 #include <vector>
+#include <stdexcept>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
 

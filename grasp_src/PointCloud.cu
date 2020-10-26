@@ -393,18 +393,18 @@ std::vector<int> Point::getAntiPoints() {
 /**
  * A wrapper function to return antipodal directions saved on this point
  */
- std::vector<Eigen::Vector3f> Point::getAntiDirs() {
-    std::vector<Eigen::Vector3f> result;
-
-    float3* candidate_iter = this -> directions;
-    for (int i = 0; i < this -> generated_grasp; i++) {
-        Eigen::Vector3f dir;
-        dir << candidate_iter[i].x, candidate_iter[i].y, candidate_iter[i].z;
-        result.push_back(dir);
-    }
-
-    return result;
-}
+// std::vector<Eigen::Vector3f> Point::getAntiDirs() {
+//    std::vector<Eigen::Vector3f> result;
+//
+//    float3* candidate_iter = this -> directions;
+//    for (int i = 0; i < this -> generated_grasp; i++) {
+//        Eigen::Vector3f dir;
+//        dir << candidate_iter[i].x, candidate_iter[i].y, candidate_iter[i].z;
+//        result.push_back(dir);
+//    }
+//
+//    return result;
+//}
 
 Point::Point(float x, float y, float z, float nx, float ny, float nz, int candidateNum) : 
     x(x), y(y), z(z), nx(nx), ny(ny), nz(nz), generated_grasp(0), filteredGraspNum(0), candidateNum(candidateNum){

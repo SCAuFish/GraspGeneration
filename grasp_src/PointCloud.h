@@ -12,7 +12,8 @@
 #include <stdexcept>
 #include <cuda.h>
 #include <cuda_profiler_api.h>
-#include <Eigen/LU>
+#include <cstring>
+//#include <Eigen/LU>
 
 class Point{
     public:
@@ -30,7 +31,7 @@ class Point{
     CUDA_HOSTDEV void addAntipodal(int index, float score, int candidateNum, float3 noCollisionDir);
     std::vector<int> getAntiPoints();
     std::vector<float> getAntiScores();
-    std::vector<Eigen::Vector3f> getAntiDirs();
+//    std::vector<Eigen::Vector3f> getAntiDirs();
     Point(float x, float y, float z, float nx, float ny, float nz, int candidateNum);
     ~Point();
 };

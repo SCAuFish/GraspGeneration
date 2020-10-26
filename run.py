@@ -2,16 +2,37 @@
 import os, sys
 from pcloud_src.data_generation import generate_point_cloud, CLOUD_DIR
 from grasp_src.utils import filter_and_score
+from categories import safe, storage_mixed, storage_prismatic, storage_revolute, dishwasher
+import argparse
 
 ASSET_DIR = '/cephfs/chs091/dataset'
-if len(sys.argv) > 1:
-    # when running locally
-    ASSET_DIR = sys.argv[1]
-print("Using objects in {}".format(ASSET_DIR))
-objects = os.listdir(ASSET_DIR)
 
-for i in range(len(objects)):
-    objId = objects[i]
+parser = argparse.ArgumentParser()
+parser.add_argument("--objects", help="the objects to generate grasps on. Can be categories predefined")
+parser.add_argument("--skip_pcd", help="Skip the generation of pointcloud. Turn on only if pcd already exists.",
+                    action="store_true")
+args = parser.parse_args()
+
+# if len(sys.argv) > 1:
+#     # when running locally
+#     ASSET_DIR = sys.argv[1]
+# print("Using objects in {}".format(ASSET_DIR))
+# objects = os.listdir(ASSET_DIR)
+
+object_list = []
+if args.objects == 'safe':
+    object_list = safe
+elif args.objects == 'dishwasher':
+    object_list = dishwasher
+elif args.objects == 'storage_revolute':
+    object_list = storage_revolute
+elif args.objects == 'storage_prismatic':
+    object_list = storage_prismatic
+elif args.objects == 'storage_mixed':
+    object_list = storage_mixed
+
+for i in range(len(object_list)):
+    objId = object_list[i].split("_")[0]
     print("Generating on ID {} -- {}/{}".format(objects[i], i+1, len(objects)))
 
     # 2. Generate pcd file for a point cloud
@@ -23,10 +44,11 @@ for i in range(len(objects)):
             # skip generated grasps
             continue
         # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
-        exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
-        if exit_code != 0:
-            print("Failed pointcloud generation on {}".format(objId))
-            break
+        if not args.skip_pcd:
+            exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
+            if exit_code != 0:
+                print("Failed pointcloud generation on {}".format(objId))
+                break
 
         # 3. Generate raw grasps
         exit_code = os.system(f'./grasp_src/grasp_gen {CLOUD_DIR}/{objDir}/all.pcd {CLOUD_DIR}/{objDir}/raw_grasp.out')

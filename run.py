@@ -31,10 +31,10 @@ elif args.objects == 'storage_prismatic':
 elif args.objects == 'storage_mixed':
     object_list = storage_mixed
 
+print("Skipping pcd configure: {}".format(args.skip_pcd))
 for i in range(len(object_list)):
     objId = object_list[i].split("_")[0]
     print("Generating on ID {} -- {}/{}".format(object_list[i], i+1, len(object_list)))
-    print("Skipping pcd configure: {}".format(args.skip_pcd))
 
     # 2. Generate pcd file for a point cloud
     # add more pose with other seeds here
@@ -52,6 +52,7 @@ for i in range(len(object_list)):
                 print("Failed pointcloud generation on {}".format(objId))
                 break
 
+        continue
         # 3. Generate raw grasps
         exit_code = os.system(f'./grasp_src/grasp_gen {CLOUD_DIR}/{objDir}/all.pcd {CLOUD_DIR}/{objDir}/raw_grasp.out')
         if exit_code != 0:

@@ -41,9 +41,9 @@ for i in range(len(object_list)):
     seeds = [1]
     for i in range(len(seeds)):
         objDir = "{}_{}".format(objId, seeds[i])
-        if os.path.isdir("{}/{}".format(CLOUD_DIR, objDir)):
+        # if os.path.isdir("{}/{}".format(CLOUD_DIR, objDir)):
             # skip generated grasps
-            continue
+        #     continue
         if not args.skip_pcd:
             # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
             exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))

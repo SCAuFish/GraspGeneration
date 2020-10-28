@@ -41,7 +41,7 @@ for i in range(len(object_list)):
     seeds = [1]
     for i in range(len(seeds)):
         objDir = "{}_{}".format(objId, seeds[i])
-        if os.path.exists("{}/{}/filtered.out".format(CLOUD_DIR, objDir)):
+        if os.path.exists("{}/{}/raw_grasp.out".format(CLOUD_DIR, objDir)):
             # skip generated grasps
             print(f"skipped generation of {objDir}")
             continue
@@ -52,9 +52,8 @@ for i in range(len(object_list)):
                 print("Failed pointcloud generation on {}".format(objId))
                 break
 
-        continue
         # 3. Generate raw grasps
-        os.system('touch {CLOUD_DIR}/{objDir}/raw_grasp.out')
+        os.system(f'touch {CLOUD_DIR}/{objDir}/raw_grasp.out')
         exit_code = os.system(f'./grasp_src/grasp_gen {CLOUD_DIR}/{objDir}/all.pcd {CLOUD_DIR}/{objDir}/raw_grasp.out')
         if exit_code != 0:
             print("Failed grasp generation on {}".format(objId))

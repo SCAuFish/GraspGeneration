@@ -8,11 +8,14 @@ from tqdm import tqdm
 import open3d
 import sapien.core as sc
 from scipy.stats import mode
+import socket
 
 import numpy as np
 
 CLOUD_DIR = '/cephfs/chs091/clouds_col/'
-# CLOUD_DIR = '~/Documents/grasp_data/grasp_gen_prod/'
+if socket.gethostname() == 'AuFish2020':
+    # CLOUD_DIR = '~/Documents/grasp_data/clouds_col/'
+    CLOUD_DIR = '~/Documents/grasp_data/grasp_gen_prod'
 
 OUTPUT_DIR = CLOUD_DIR
 

@@ -4,8 +4,11 @@ from pcloud_src.data_generation import generate_point_cloud, CLOUD_DIR
 from grasp_src.utils import filter_and_score
 from categories import safe, storage_mixed, storage_prismatic, storage_revolute, dishwasher
 import argparse
+import socket
 
 ASSET_DIR = '/cephfs/chs091/dataset'
+if socket.gethostname() == 'AuFish2020':
+    ASSET_DIR = '/home/aufish/Documents/grasp_data/dataset/'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--objects", help="the objects to generate grasps on. Can be categories predefined")
@@ -47,7 +50,10 @@ for i in range(len(object_list)):
             continue
         if not args.skip_pcd:
             # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
-            exit_code = os.system("python3 pcloud_src/data_generation.py {} {} {}".format(objId, seeds[i], ASSET_DIR))
+            command = "python3 pcloud_src/data_generation.py --object_id {} " \
+                    "--pose_id {} --dataset_dir {} --output_to {} " \
+                    "--scale {}".format(objId, seeds[i], ASSET_DIR, CLOUD_DIR, 1)
+            exit_code = os.system(command)
             if exit_code != 0:
                 print("Failed pointcloud generation on {}".format(objId))
                 break

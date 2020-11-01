@@ -114,7 +114,7 @@ def generate_point_cloud(id: str, seed: int = None, dataset_dir='../../dataset',
 
     link_info = {}
     print(articulation.get_qpos())
-    link_info['qpos'] = str(articulation.get_qpos())
+    link_info['qpos'] = articulation.get_qpos().tolist()
     for link, joint in zip(articulation.get_links(), articulation.get_joints()):
         if link.name == 'base':
             continue
@@ -142,7 +142,7 @@ def generate_point_cloud(id: str, seed: int = None, dataset_dir='../../dataset',
     dirname = '{}/{}_{}'.format(OUTPUT_DIR, id, seed if seed is not None else 'init')
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, 'info.json'), 'w') as f:
-        json.dump({'seed': seed, 'info': link_info}, f)
+        json.dump({'seed': seed, 'scale': obj_scale, 'info': link_info}, f)
 
     for l in articulation.get_links():
         l.unhide_visual()
@@ -223,4 +223,5 @@ if __name__ == "__main__":
     OUTPUT_DIR = args.output_to
     print("Generating in folder: {}".format(args.output_to))
 
-    generate_point_cloud(args.object_id, int(args.pose_id), args.dataset_dir, obj_scale=float(args.scale), render_collision=True)
+    pose_id = None if args.pose_id is None else int(args.pose_id)
+    generate_point_cloud(args.object_id, pose_id, args.dataset_dir, obj_scale=float(args.scale), render_collision=True)

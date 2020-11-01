@@ -37,7 +37,7 @@ elif args.objects == 'storage_mixed':
 print("Skipping pcd configure: {}".format(args.skip_pcd))
 for i in range(len(object_list)):
     objId = object_list[i].split("_")[0]
-    print("Generating on ID {} -- {}/{}".format(object_list[i], i+1, len(object_list)))
+    print("Generating on ID {} -- {}/{}".format(object_list[i], i + 1, len(object_list)))
 
     # 2. Generate pcd file for a point cloud
     # add more pose with other seeds here
@@ -51,8 +51,8 @@ for i in range(len(object_list)):
         if not args.skip_pcd:
             # generate_point_cloud(objId, seeds[i], dataset_dir = ASSET_DIR, render_collision=True)
             command = "python3 pcloud_src/data_generation.py --object_id {} " \
-                    "--pose_id {} --dataset_dir {} --output_to {} " \
-                    "--scale {}".format(objId, seeds[i], ASSET_DIR, CLOUD_DIR, 1)
+                      "--pose_id {} --dataset_dir {} --output_to {} " \
+                      "--scale {}".format(objId, seeds[i], ASSET_DIR, CLOUD_DIR, 1)
             exit_code = os.system(command)
             if exit_code != 0:
                 print("Failed pointcloud generation on {}".format(objId))
@@ -69,11 +69,11 @@ for i in range(len(object_list)):
 
         # 4. Filter grasps that are on fixed links. Back to 2 
         try:
-            filter_and_score("{}/{}/all.npz".format(CLOUD_DIR, objDir), objId, 
-                           "{}/{}/info.json".format(CLOUD_DIR, objDir), 
-                           "{}/{}/raw_grasp.out".format(CLOUD_DIR, objDir), 
-                           "{}/{}/filtered.out".format(CLOUD_DIR, objDir),
-                           ASSET_DIR)
+            filter_and_score("{}/{}/all.npz".format(CLOUD_DIR, objDir), objId,
+                             "{}/{}/info.json".format(CLOUD_DIR, objDir),
+                             "{}/{}/raw_grasp.out".format(CLOUD_DIR, objDir),
+                             "{}/{}/filtered.out".format(CLOUD_DIR, objDir),
+                             ASSET_DIR)
         except:
             print("Failed grasp filtering on {}".format(objId))
             break

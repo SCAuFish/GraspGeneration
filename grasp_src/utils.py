@@ -147,6 +147,7 @@ def get_paired_score(unit_torque_force: np.ndarray, force_along_normal: np.ndarr
 
     return (dir1nf, dir2nf)
 
+
 def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, output_file, ASSET_DIR, friction_coef=0.7):
     # 1. Read in grasp proposals
     pointcloud = np.load(object_npz)
@@ -169,8 +170,11 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
     movable_segments = []
     info_json = json.load(open(info_json_file))['info']
     seg2link_joint = {}
-    joint2pose     = {}
+    joint2pose = {}
+    print(info_json)
     for key in info_json:
+        if key == "qpos":
+            continue
         seg2link_joint[int(key)] = (info_json[key]['link_name'], info_json[key]['joint_name'])
         joint2pose[info_json[key]['joint_name']] = sapien.Pose(info_json[key]['joint_pose'][0], info_json[key]['joint_pose'][1])
         
@@ -232,27 +236,34 @@ def filter_and_score(object_npz, objectId, info_json_file, grasp_proposal, outpu
     print("Done score calculating")            
     proposal_writer.close()
 
-import argparse
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--root", default="../clouds")
-    args = parser.parse_args()
+# import argparse
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--root", default="../clouds")
+#     args = parser.parse_args()
+#
+#     for obj_dir in os.listdir(args.root):
+#         try:
+#             obj_id = int(obj_dir.split("_")[0])
+#         except Exception as e:
+#             print(e)
+#             print(f"{obj_dir} is not a valid object dir")
+#
+#         print(f"processing {obj_dir}")
+#         try:
+#             filter_and_score(f"{args.root}/{obj_dir}/all.npz",
+#                             obj_id,
+#                             f"{args.root}/{obj_dir}/info.json",
+#                             f"{args.root}/{obj_dir}/raw_grasp.out",
+#                             f"{args.root}/{obj_dir}/filtered.out",
+#                             "../../dataset/")
+#         except Exception as e:
+#             print(e)
+#             print(f"Failed grasp filtering on {obj_dir}")
 
-    for obj_dir in os.listdir(args.root):
-        try:
-            obj_id = int(obj_dir.split("_")[0])
-        except Exception as e:
-            print(e)
-            print(f"{obj_dir} is not a valid object dir")
 
-        print(f"processing {obj_dir}")
-        try:
-            filter_and_score(f"{args.root}/{obj_dir}/all.npz", 
-                            obj_id, 
-                            f"{args.root}/{obj_dir}/info.json", 
-                            f"{args.root}/{obj_dir}/raw_grasp.out", 
-                            f"{args.root}/{obj_dir}/filtered.out", 
-                            "../../dataset/")
-        except Exception as e:
-            print(e)
-            print(f"Failed grasp filtering on {obj_dir}")
+filter_and_score("../7310_init/all.npz", 7310,
+                 "../7310_init/info.json",
+                 "../7310_init/raw_grasp.out",
+                 "../7310_init/filtered.out",
+                 "../../dataset/")

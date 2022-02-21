@@ -113,7 +113,7 @@ def visualize_grasps_quality(pcd_file, grasp_file, obj_id, joint_name, friction_
 
     pcd = pcd.voxel_down_sample(voxel_size=0.01)
 
-    open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
+    open3d.visualization.draw_geometries([pcd, lineset])
 
 def visualize_scored_grasps(pcd_file, grasp_file):
     pcd = open3d.io.read_point_cloud(pcd_file)
@@ -134,13 +134,26 @@ def visualize_scored_grasps(pcd_file, grasp_file):
     mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
 
     # Choose a relatively good normalizer
-    colors = [[0, mean_scores[i] / 10, 1-(mean_scores[i] / 10)] for i in range(len(lines))]
+    colors = [[0, 1 - mean_scores[i] / 14, (mean_scores[i] / 14)] for i in range(len(lines))]
     lineset.colors = open3d.utility.Vector3dVector(colors)
 
     pcd = pcd.voxel_down_sample(voxel_size=0.01)
 
-    open3d.visualization.draw_geometries([pcd, lineset, mesh_frame])
+    pcd.paint_uniform_color([0, 0, 0])
+    open3d.visualization.draw_geometries([pcd, lineset])
 
+def make_standalone_colorbar(min_val, max_val, min_color, max_color):
+    import pylab as pl
+    import numpy as np
+
+    a = np.array([[0, 1, 0], [0, 0, 1]])
+    pl.figure(figsize=(3, 9))
+    img = pl.imshow(a, vmin=-10, vmax=0)
+    pl.gca().set_visible(False)
+    # pl.yticks(np.arange(-10, 0, 1))
+    cax = pl.axes([0.1, 0.1, 0.6, 0.8])
+    pl.colorbar(orientation="vertical", cax=cax, shrink=10)
+    pl.savefig("colorbar.png")
 
 import sys
 if __name__ == "__main__":
@@ -152,6 +165,8 @@ if __name__ == "__main__":
         obj_id     = sys.argv[3]
         joint_name = sys.argv[4]
         visualize_grasps_quality(point_cloud_file, grasp_file, obj_id, joint_name, 0.1)
+
+    # make_standalone_colorbar(-10, 0, [0, 1, 0], [0, 0, 1])
     # visualize_grasps("../35059_link0.pcd", "../eval_src/filtered_proposal.out")
     # visualize_grasps("../assets/smoothed_35059_link0.pcd", "../outputs/smoothed_grasps_100cm.out")
     # visualize_grasps("../assets/smoothed_35059_link0.pcd", "../outputs/local_robust_smoothed_grasps_100cm.out")
